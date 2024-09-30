@@ -15,7 +15,7 @@ type Config struct {
 	MinioAccessToken string
 	MinioSecret      string
 	Scheme           string
-	buckets          []string
+	Buckets          []string
 }
 
 func WithConfig(config *Config) Option {
@@ -43,7 +43,7 @@ func (m *Minio) Setup(ctx context.Context) error {
 		Secure: true,
 	})
 
-	for _, bucket := range m.conf.buckets {
+	for _, bucket := range m.conf.Buckets {
 		err = minioClient.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
 		if err != nil {
 			exists, errBucketExists := minioClient.BucketExists(ctx, bucket)
@@ -63,7 +63,7 @@ func (m *Minio) GeneratePublicURL(bucketName, objectName string) string {
 
 // ReadinessCheck verifies that the Minio client can interact with the Minio server.
 func (m *Minio) ReadinessCheck() error {
-	// Check if the connection to the Minio server is healthy by listing buckets
+	// Check if the connection to the Minio server is healthy by listing Buckets
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	_, err := m.M.ListBuckets(ctx)
