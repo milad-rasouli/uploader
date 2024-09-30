@@ -14,7 +14,7 @@ type Config struct {
 	MinioHost        string
 	MinioAccessToken string
 	MinioSecret      string
-	Scheme           string
+	Secure           bool
 	Buckets          []string
 }
 
@@ -40,7 +40,7 @@ func NewMinio(options ...Option) *Minio {
 func (m *Minio) Setup(ctx context.Context) error {
 	minioClient, err := minio.New(m.conf.MinioHost, &minio.Options{
 		Creds:  credentials.NewStaticV4(m.conf.MinioAccessToken, m.conf.MinioSecret, ""),
-		Secure: true,
+		Secure: m.conf.Secure,
 	})
 	if err != nil {
 		return err
@@ -61,7 +61,11 @@ func (m *Minio) Setup(ctx context.Context) error {
 }
 
 func (m *Minio) GeneratePublicURL(bucketName, objectName string) string {
-	return GeneratePublicURL(m.conf.Scheme, m.conf.MinioHost, bucketName, objectName)
+	scheme := "http"
+	if m.conf.Secure {
+		scheme = "https"
+	}
+	return GeneratePublicURL(scheme, m.conf.MinioHost, bucketName, objectName)
 }
 
 // ReadinessCheck verifies that the Minio client can interact with the Minio server.
