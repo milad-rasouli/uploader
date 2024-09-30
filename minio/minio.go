@@ -58,7 +58,7 @@ func (m *Minio) Setup(ctx context.Context) error {
 }
 
 func (m *Minio) GeneratePublicURL(bucketName, objectName string) string {
-	return fmt.Sprintf("%s%s/%s/%s", m.conf.Scheme, m.conf.MinioHost, bucketName, objectName)
+	return GeneratePublicURL(m.conf.Scheme, m.conf.MinioHost, bucketName, objectName)
 }
 
 // ReadinessCheck verifies that the Minio client can interact with the Minio server.
@@ -71,4 +71,8 @@ func (m *Minio) ReadinessCheck() error {
 		return fmt.Errorf("minio readiness check failed: %w", err)
 	}
 	return nil
+}
+
+func GeneratePublicURL(scheme, minioHost, bucketName, objectName string) string {
+	return fmt.Sprintf("%s%s/%s/%s", scheme, minioHost, bucketName, objectName)
 }

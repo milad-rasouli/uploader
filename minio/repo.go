@@ -27,11 +27,6 @@ func (r *MinIOFileRepository) UploadPublicFile(ctx context.Context, bucketName, 
 	return nil
 }
 
-func (r *MinIOFileRepository) GeneratePublicURL(bucketName string, objectName string) string {
-	fileURL := r.m.GeneratePublicURL(bucketName, objectName)
-	return fileURL
-}
-
 func (r *MinIOFileRepository) DeleteFile(ctx context.Context, bucketName string, objectName string) error {
 	return r.m.M.RemoveObject(ctx, bucketName, objectName, minio.RemoveObjectOptions{})
 }
