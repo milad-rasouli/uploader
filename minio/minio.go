@@ -61,9 +61,9 @@ func (m *Minio) Setup(ctx context.Context) error {
 }
 
 func (m *Minio) GeneratePublicURL(bucketName, objectName string) string {
-	scheme := "http"
+	scheme := "http://"
 	if m.conf.Secure {
-		scheme = "https"
+		scheme = "https://"
 	}
 	return GeneratePublicURL(scheme, m.conf.MinioHost, bucketName, objectName)
 }
