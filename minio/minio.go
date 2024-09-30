@@ -11,12 +11,11 @@ import (
 type Option func(m *Minio)
 
 type Config struct {
-	MinioHost                 string
-	MinioAccessToken          string
-	MinioSecret               string
-	MinioProfilePictureBucket string
-	MinioDoctorBucket         string
-	Scheme                    string
+	MinioHost        string
+	MinioAccessToken string
+	MinioSecret      string
+	Scheme           string
+	buckets          []string
 }
 
 func WithConfig(config *Config) Option {
@@ -43,21 +42,14 @@ func (m *Minio) Setup(ctx context.Context) error {
 		Creds:  credentials.NewStaticV4(m.conf.MinioAccessToken, m.conf.MinioSecret, ""),
 		Secure: true,
 	})
-	bucketName := m.conf.MinioProfilePictureBucket
-	err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
-	if err != nil {
-		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
-		if errBucketExists != nil && !exists {
-			return err
-		}
-	}
 
-	bucketName = m.conf.MinioDoctorBucket
-	err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
-	if err != nil {
-		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
-		if errBucketExists != nil && !exists {
-			return err
+	for _, bucket := range m.conf.buckets {
+		err = minioClient.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
+		if err != nil {
+			exists, errBucketExists := minioClient.BucketExists(ctx, bucket)
+			if errBucketExists != nil && !exists {
+				return err
+			}
 		}
 	}
 
