@@ -42,6 +42,9 @@ func (m *Minio) Setup(ctx context.Context) error {
 		Creds:  credentials.NewStaticV4(m.conf.MinioAccessToken, m.conf.MinioSecret, ""),
 		Secure: true,
 	})
+	if err != nil {
+		return err
+	}
 
 	for _, bucket := range m.conf.Buckets {
 		err = minioClient.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
