@@ -1,0 +1,72 @@
+package minio
+
+import (
+	"context"
+	"fmt"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"time"
+)
+
+type Config struct {
+	MinioHost                 string
+	MinioAccessToken          string
+	MinioSecret               string
+	MinioProfilePictureBucket string
+	MinioDoctorBucket         string
+	Scheme                    string
+}
+
+type Minio struct {
+	conf *Config
+	M    *minio.Client
+}
+
+func NewMinio(conf *Config) *Minio {
+	return &Minio{
+		conf: conf,
+	}
+}
+
+func (m *Minio) Setup(ctx context.Context) error {
+	minioClient, err := minio.New(m.conf.MinioHost, &minio.Options{
+		Creds:  credentials.NewStaticV4(m.conf.MinioAccessToken, m.conf.MinioSecret, ""),
+		Secure: true,
+	})
+	bucketName := m.conf.MinioProfilePictureBucket
+	err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+	if err != nil {
+		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
+		if errBucketExists != nil && !exists {
+			return err
+		}
+	}
+
+	bucketName = m.conf.MinioDoctorBucket
+	err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+	if err != nil {
+		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
+		if errBucketExists != nil && !exists {
+			return err
+		}
+	}
+
+	m.M = minioClient
+	return nil
+}
+
+func (m *Minio) GeneratePublicURL(bucketName, objectName string) string {
+	return fmt.Sprintf("%s%s/%s/%s", m.conf.Scheme, m.conf.MinioHost, bucketName, objectName)
+}
+
+// ReadinessCheck verifies that the Minio client can interact with the Minio server.
+func (m *Minio) ReadinessCheck() error {
+	// Check if the connection to the Minio server is healthy by listing buckets
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	_, err := m.M.ListBuckets(ctx)
+	if err != nil {
+		return fmt.Errorf("minio readiness check failed: %w", err)
+	}
+	return nil
+}
