@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+type Option func(m *Minio)
+
 type Config struct {
 	MinioHost                 string
 	MinioAccessToken          string
@@ -17,15 +19,23 @@ type Config struct {
 	Scheme                    string
 }
 
+func WithConfig(config *Config) Option {
+	return func(m *Minio) {
+		m.conf = config
+	}
+}
+
 type Minio struct {
 	conf *Config
 	M    *minio.Client
 }
 
-func NewMinio(conf *Config) *Minio {
-	return &Minio{
-		conf: conf,
+func NewMinio(options ...Option) *Minio {
+	m := &Minio{}
+	for i := 0; i < len(options); i++ {
+		options[i](m)
 	}
+	return m
 }
 
 func (m *Minio) Setup(ctx context.Context) error {
