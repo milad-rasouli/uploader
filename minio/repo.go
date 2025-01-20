@@ -20,29 +20,30 @@ func NewMinIOFileRepository(m *Minio) *MinIOFileRepository {
 // UploadPublicFile uploads the file to MinIO, ensures the bucket exists, and returns the file's public URL
 // UploadPublicFile uploads the file to MinIO, ensures the bucket exists, and returns the file's public URL
 func (r *MinIOFileRepository) UploadPublicFile(ctx context.Context, bucketName, objectName, contentType string, file io.Reader) error {
-	// If file is of type *os.File, we can get its size directly
-	if f, ok := file.(*os.File); ok {
+	var size int64
+
+	// Check if it's a bytes.Reader to get size directly
+	if rs, ok := file.(*bytes.Reader); ok {
+		size = int64(rs.Len())
+	} else if f, ok := file.(*os.File); ok {
+		// Handle regular files
 		fileInfo, err := f.Stat()
 		if err != nil {
 			return fmt.Errorf("failed to get file info: %w", err)
 		}
-
-		// Upload with known size
-		_, err = r.m.M.PutObject(ctx, bucketName, objectName, file, fileInfo.Size(), minio.PutObjectOptions{
-			ContentType: contentType,
-		})
-		return err
+		size = fileInfo.Size()
+	} else {
+		// For other readers, buffer the content
+		var buf bytes.Buffer
+		var err error
+		size, err = io.Copy(&buf, file)
+		if err != nil {
+			return fmt.Errorf("failed to copy file to buffer: %w", err)
+		}
+		file = &buf
 	}
 
-	// For other types of readers (like multipart.File), we need to buffer to get size
-	var buf bytes.Buffer
-	size, err := io.Copy(&buf, file)
-	if err != nil {
-		return fmt.Errorf("failed to copy file to buffer: %w", err)
-	}
-
-	// Upload from buffer with known size
-	_, err = r.m.M.PutObject(ctx, bucketName, objectName, &buf, size, minio.PutObjectOptions{
+	_, err := r.m.M.PutObject(ctx, bucketName, objectName, file, size, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	return err
