@@ -22,6 +22,7 @@ type Config struct {
 func WithConfig(config *Config) Option {
 	return func(m *Minio) {
 		m.conf = config
+		m.DisableMultiPart = config.DisableMultiPart
 	}
 }
 
