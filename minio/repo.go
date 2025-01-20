@@ -1,9 +1,12 @@
 package minio
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"github.com/minio/minio-go/v7"
 	"io"
+	"os"
 )
 
 type MinIOFileRepository struct {
@@ -15,16 +18,34 @@ func NewMinIOFileRepository(m *Minio) *MinIOFileRepository {
 }
 
 // UploadPublicFile uploads the file to MinIO, ensures the bucket exists, and returns the file's public URL
+// UploadPublicFile uploads the file to MinIO, ensures the bucket exists, and returns the file's public URL
 func (r *MinIOFileRepository) UploadPublicFile(ctx context.Context, bucketName, objectName, contentType string, file io.Reader) error {
+	// If file is of type *os.File, we can get its size directly
+	if f, ok := file.(*os.File); ok {
+		fileInfo, err := f.Stat()
+		if err != nil {
+			return fmt.Errorf("failed to get file info: %w", err)
+		}
 
-	// Upload the file to MinIO
-	_, err := r.m.M.PutObject(ctx, bucketName, objectName, file, -1, minio.PutObjectOptions{
-		ContentType: contentType,
-	})
-	if err != nil {
+		// Upload with known size
+		_, err = r.m.M.PutObject(ctx, bucketName, objectName, file, fileInfo.Size(), minio.PutObjectOptions{
+			ContentType: contentType,
+		})
 		return err
 	}
-	return nil
+
+	// For other types of readers (like multipart.File), we need to buffer to get size
+	var buf bytes.Buffer
+	size, err := io.Copy(&buf, file)
+	if err != nil {
+		return fmt.Errorf("failed to copy file to buffer: %w", err)
+	}
+
+	// Upload from buffer with known size
+	_, err = r.m.M.PutObject(ctx, bucketName, objectName, &buf, size, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
+	return err
 }
 
 func (r *MinIOFileRepository) DeleteFile(ctx context.Context, bucketName string, objectName string) error {
