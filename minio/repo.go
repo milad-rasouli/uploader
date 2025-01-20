@@ -10,12 +10,11 @@ import (
 )
 
 type MinIOFileRepository struct {
-	m                *Minio
-	disableMultiPart bool
+	m *Minio
 }
 
-func NewMinIOFileRepository(m *Minio, disableMultiPart bool) *MinIOFileRepository {
-	return &MinIOFileRepository{m: m, disableMultiPart: disableMultiPart}
+func NewMinIOFileRepository(m *Minio) *MinIOFileRepository {
+	return &MinIOFileRepository{m: m}
 }
 
 // UploadPublicFile uploads the file to MinIO, ensures the bucket exists, and returns the file's public URL
@@ -46,7 +45,7 @@ func (r *MinIOFileRepository) UploadPublicFile(ctx context.Context, bucketName, 
 
 	_, err := r.m.M.PutObject(ctx, bucketName, objectName, file, size, minio.PutObjectOptions{
 		ContentType:      contentType,
-		DisableMultipart: r.disableMultiPart,
+		DisableMultipart: r.m.DisableMultiPart,
 	})
 	return err
 }

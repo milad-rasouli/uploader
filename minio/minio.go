@@ -16,6 +16,7 @@ type Config struct {
 	MinioSecret      string
 	Secure           bool
 	Buckets          []string
+	DisableMultiPart bool
 }
 
 func WithConfig(config *Config) Option {
@@ -25,8 +26,9 @@ func WithConfig(config *Config) Option {
 }
 
 type Minio struct {
-	conf *Config
-	M    *minio.Client
+	conf             *Config
+	M                *minio.Client
+	DisableMultiPart bool
 }
 
 func NewMinio(options ...Option) *Minio {
