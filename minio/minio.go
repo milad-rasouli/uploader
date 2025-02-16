@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/minio/minio-go/v7/pkg/lifecycle"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type Config struct {
 	Secure           bool
 	Buckets          []string
 	DisableMultiPart bool
+	ExpirationDays   uint16 //amount of days to expire and delete objects
 }
 
 func WithConfig(config *Config) Option {
@@ -54,6 +56,23 @@ func (m *Minio) Setup(ctx context.Context) error {
 		if err != nil {
 			exists, errBucketExists := minioClient.BucketExists(ctx, bucket)
 			if errBucketExists != nil && !exists {
+				return err
+			}
+		}
+		if m.conf.ExpirationDays > 0 {
+			config := lifecycle.NewConfiguration()
+			config.Rules = []lifecycle.Rule{
+				{
+					ID:     bucket,
+					Status: "Enabled",
+					Expiration: lifecycle.Expiration{
+						Days: lifecycle.ExpirationDays(m.conf.ExpirationDays),
+					},
+				},
+			}
+
+			err = minioClient.SetBucketLifecycle(context.Background(), bucket, config)
+			if err != nil {
 				return err
 			}
 		}
